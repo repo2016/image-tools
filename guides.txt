@@ -1,0 +1,107 @@
+格式化U盘
+
+sudo umount /dev/sdb
+
+sudo mkfs.fat /dev/sdb
+
+
+制作工具盘
+
+sudo ../tools/mkefidisk.sh /dev/sdb core-image-sato.hddimg /dev/sda
+第一个/dev/sdb是当前U盘的路径
+第二个/dev/sda是工具盘插入电脑上显示的名字
+不要采用dd命令，会将后面不适用的空间全部置零
+
+sudo tar xf qume-img.tar.gz -C /run/media/public/boot
+
+sudo umount /run/media/public/boot
+
+
+工具盘制作完成
+
+首先对用于制作母盘的操作系统执行
+sudo apt-get clean
+清理cache
+
+
+将U盘插入电脑，抓取硬盘压缩镜像，命令使用cat get-image.txt查看
+
+进入BIOS，选择boot，打开terminal，输入抓取镜像命令
+
+此时进入yocto系统，系统会自动将硬盘挂载上来，可使用df查看
+
+umount /media/mmcblock0P*		//一定要umount，使文件系统离开内存
+
+qemu-img convert -p -c -f raw /dev/mmcblk0 -O qcow2 ubuntu-16.04.qcow2
+-p	表示显示安装进度
+-c	表示压缩compress
+-f	表示数据来源from
+raw	表示数据按照raw格式存放
+-O	表示输出output
+qcow2	表示存储格式
+
+注意ubuntu-16.04.qcow2的大小一般在2.8G，这个文件格式具有增量特性
+需关机后拔出U盘
+
+
+抓取硬盘镜像完成
+
+
+制作安装母盘
+
+将抓取的ubuntu-16.04.qcow2放入image文件夹，使用命令
+
+./tool/build_hddimg.sh生成ubuntu-16.04-install.hddimg
+
+
+注意制作md5校验码
+md5sum ubuntu-16.04-install.hddimg > ubuntu-16.04-install.md5
+
+
+然后将镜像写入U盘
+
+sudo dd if=ubuntu-16.04-install.hddimg of=/dev/sdb
+
+sudo umount /挂载点
+
+安装盘制作完成
+
+插入U盘安装系统，大约20分钟
+
+
+转换成emmc预烧录格式
+qemu-img convert -f qcow2 ubuntu-16.04.qcow2 -O raw ubuntu-16.04.raw
+
+使用软件qemu-img完成上述功能，查看img安装脚本
+
+
+user-data文件夹主要是放在工具盘的根目录下
+
+fetch-ubuntu-cs.sh等文件主要用于抓取镜像
+install-ubuntu-cs.sh等文件主要用于安装抓取的文件
+
+clean_disk.sh主要用于清理emmc磁盘上的无效数据
+reinstall_grub.sh主要用于重新安装ubuntu系统grub，
+在使用clean_disk.sh以后需要使用该脚本更新grub实现系统启动正常
+
+chroot /tgt_root
+/usr/sbin/update-grub
+
+关键字
+KVM qemu-img raw qcow2 Gparted
+
+
+工厂方面可以将raw文件转换成mtx文件
+
+通过烧录器直接对emmc的抓取会获取5个文件
+
+*.bin.boot0
+*.bin.boot1
+*.c.IMG
+ECSD
+user
+
+创建烧录工程另外有IMG，SPRJ（保存配置文件）
+
+以及raw文件转换的mtx文件
+

@@ -1,0 +1,4 @@
+qemu-img convert -p -c -f raw /dev/mmcblk0 -O qcow2 ubuntu-16.04.qcow2
+
+qemu-img convert -p -f qcow2 ubuntu-16.04.qcow2 -O raw /dev/mmcblk0
+
